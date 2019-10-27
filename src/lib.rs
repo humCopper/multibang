@@ -1,7 +1,8 @@
 use std::{env, fs, process};
-use std::io::Read;
+use std::io::{Read, BufReader};
 use std::error::Error;
 
+#[derive(Debug)]
 pub struct Bang(String, String);
 
 #[derive(Debug)]
@@ -19,7 +20,7 @@ impl Config {
             None => return Err("bang not found"),
         };
 
-        let mut query = match args.next() {
+        let query = match args.next() {
             Some(arg) => arg,
             None => return Err("query not found"),
         };
@@ -28,7 +29,8 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let url = url(&config.bang);
+    let url = url(&config.bang)
+        .or(url_ddgo(&config.bang));
     if let Some(u) = url {
         let url = u.replace("{}", &config.query);
         let result = webbrowser::open(&url);
@@ -46,7 +48,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 pub fn url(bang: &str) -> Option<String> {
     let mut file = fs::File::open("bangs").unwrap();
     let mut s = String::new();
-    file.read_to_string(&mut s);
+    file.read_to_string(&mut s).unwrap();
 
     let url = s.lines()
         .map(|line| -> Vec<&str> {
@@ -60,8 +62,36 @@ pub fn url(bang: &str) -> Option<String> {
     url
 }
 
-//fn ddg_bangs() -> Result<serde_json::Value, Box<dyn Error>> {
-//    let ddg_bangs = fs::File::open("ddg_bangs.json")?;
-//    let json: serde_json::Value = serde_json::from_reader(ddg_bangs)?;
-//    Ok(json)
-//}
+
+pub fn url_ddgo(bang: &str) -> Option<String> {
+    let file = fs::File::open("ddgo_bangs.json").unwrap();
+    let reader = BufReader::new(file);
+    let json: Vec<serde_json::Value>= serde_json::from_reader(reader).unwrap();
+    let json: Vec<(String, String)> = json.iter().filter_map(|x| {
+        match x {
+            serde_json::Value::Object(y) => {
+                Some((y.get("t").unwrap().as_str().unwrap().to_string(),
+                          y.get("u").unwrap().as_str().unwrap().to_string()))
+            }
+            _ => None,
+        }
+    }).collect();
+    let url = json.iter().find(|x| {
+        x.0 == bang
+    }).and_then(|bang| Some(bang.1.to_owned().replace("{{{s}}}", "{}")));
+    url
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ddgo_file() {
+        let out = url_ddgo("alt");
+        assert_eq!(out,Some("http://alternativeto.net/SearchResult.aspx?search={}".to_string()));
+        let out = url_ddgo("5");
+        assert_eq!(out,Some("http://fiverr.com/gigs/search?query={}".to_string()))
+
+    }
+}

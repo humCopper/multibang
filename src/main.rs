@@ -2,8 +2,6 @@ use std::{env, process};
 
 use surfraw_clone::Config;
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
     let config = Config::new(env::args())
         .unwrap_or_else(|err| {
             eprintln!("Parsing Error: {}", err);
@@ -15,5 +13,3 @@ fn main() {
         process::exit(1);
     }
 }
-
-
