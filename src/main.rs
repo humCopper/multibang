@@ -1,6 +1,6 @@
 use std::{env, process};
 
-use surfraw_clone::Config;
+use multibang::Config;
 fn main() {
     let config = Config::new(env::args())
         .unwrap_or_else(|err| {
@@ -8,7 +8,7 @@ fn main() {
             process::exit(1);
         });
 
-    if let Err(e) = surfraw_clone::run(config) {
+    if let Err(e) = multibang::run(config) {
         eprintln!("Application error: {}", e);
         process::exit(1);
     }
