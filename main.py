@@ -39,7 +39,10 @@ if __name__ == "__main__":
         print("Not enough arguments: Missing bang")
         exit(1)
 
-    if len(sys.argv) >= 3:
+    if len(sys.argv) == 2:
+        url = bang
+        webbrowser.open(url)
+    elif len(sys.argv) >= 3:
         query = " ".join(sys.argv[2:])
     else:
         print("Not enough arguments: Missing query")
